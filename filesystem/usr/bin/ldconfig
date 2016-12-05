@@ -1,0 +1,49 @@
+#!/usr/bin/env sh
+# This file is part of libertine linux's package musl_ldconfig. It is subject to the license terms in the COPYRIGHT file found in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/musl_ldconfig/master/COPYRIGHT. No part of libertine linux's package musl_ldconfig, including this file, may be copied, modified, propagated, or distributed except according to the terms contained in the COPYRIGHT file.
+# Copyright © 2016 The developers of libertine linux's package musl_ldconfig. See the COPYRIGHT file in the top-level directory of this distribution and at https://raw.githubusercontent.com/libertine-linux-packages/musl_ldconfig/master/COPYRIGHT.
+
+
+set -e
+set -u
+set -f
+
+ldconfig_scanFolders()
+{
+	# scanelf is part of pax-utils
+	
+	scanelf -qS "$@" | while read soName file
+	do
+		local target="${file##*/}"
+		local link="${file%/*}/$soName"
+		case "$file" in
+			
+			/lib/*|/usr/lib/*|/usr/local/lib/*)
+				:
+			;;
+			
+			*)
+				if [ -h "$link" -o ! -e "$link" ]; then
+					ln -s -f "$target" "$link"
+				fi
+			;;
+		esac
+		
+	done
+}
+# eat ldconfig options
+
+ldconfig_main()
+{
+	# Loop over --options we can not handle
+	local optionWeCanNotHandle
+	while getopts "nNvXvf:C:r:" optionWeCanNotHandle
+	do
+		:
+	done
+	shift $(( $OPTIND - 1 ))
+	if [ $# -gt 0 ]; then
+		ldconfig_scanFolders "$@"
+	fi
+}
+
+ldconfig_main "$@"
